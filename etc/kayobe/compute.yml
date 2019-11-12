@@ -49,6 +49,12 @@
 #compute_raid_config_extra:
 
 ###############################################################################
+# Compute node software RAID configuration.
+
+# List of software RAID arrays. See mrlesmithjr.mdadm role for format.
+#compute_mdadm_arrays:
+
+###############################################################################
 # Compute node LVM configuration.
 
 # List of compute volume groups. See mrlesmithjr.manage-lvm role for
@@ -82,6 +88,16 @@
 
 # Filesystem for docker volumes LVM backing volume. ext4 allows for shrinking.
 #compute_lvm_group_data_lv_docker_volumes_fs:
+
+###############################################################################
+# Compute node Ceph configuration.
+
+# List of Ceph disks.
+# The format is a list of dict like :
+# - { osd: "/dev/sdb", journal: "/dev/sdc" }
+# - { osd: "/dev/sdd" }
+# Journal variable is not mandatory.
+#compute_ceph_disks:
 
 ###############################################################################
 # Compute node sysctl configuration.

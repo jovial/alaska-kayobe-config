@@ -1,3 +1,75 @@
 ---
 # Add extra Kolla global configuration here.
 rabbitmq_monitoring_user: "monitoring"
+
+# Although Kolla-Ansible provides full support for Fernet tokens, it still
+# defaults to UUID.  This setting overrides K-A and brings it in-line with
+# Keystone's default.
+keystone_token_provider: "fernet"
+
+# Monasca doesn't support binary type container builds
+monasca_install_type: "source"
+
+# Use the legacy port as LXC services are configured to use it
+#monasca_api_port: 8070
+monasca_api_port: 8082
+
+# Roles which grant read/write access to Monasca APIs
+monasca_default_authorized_roles:
+  - admin
+  - monasca-user
+
+# Roles which grant write access to Monasca APIs
+monasca_agent_authorized_roles:
+  - monasca-agent
+
+#NOTE(wszumski): Disabled on alt-1 due to RAM limitations
+# Default size causes ES to fall over very easily
+#es_heap_size: "24g"
+
+# Settings to ensure backwords compatibility with Queens Monasca deployment
+monasca_grafana_server_port: "3000"
+monasca_control_plane_project: "monasca"
+monasca_grafana_admin_username: "grafana-admin"
+
+# Container image tags.
+# These should be allowed to change independently, as services are updated.
+
+barbican_tag: 8.0.1.1-1
+cron_tag: 8.0.1.1-1
+elasticsearch_tag: 8.0.1.1-1
+fluentd_tag: 8.0.1.1-1
+glance_tag: 8.0.1.1-1
+haproxy_tag: 8.0.1.1-1
+heat_tag: 8.0.1.1-1
+horizon_tag: 8.0.1.1-1
+influxdb_tag: 8.0.1.1-1
+ironic_tag: 8.0.1.1-1
+iscsid_tag: 8.0.1.1-1
+kafka_tag: 8.0.1.1-1
+keepalived_tag: 8.0.1.1-1
+keystone_tag: 8.0.1.1-1
+kibana_tag: 8.0.1.1-1
+kolla_toolbox_tag: 8.0.1.1-1
+logstash_tag: 8.0.1.1-1
+magnum_tag: 8.0.1.1-1
+manila_tag: 8.0.1.1-1
+mariadb_tag: 8.0.1.1-1
+memcached_tag: 8.0.1.1-1
+monasca_tag: 8.0.1.1-1
+monasca_api_tag: 8.0.1.1-1
+monasca_grafana_tag: 8.0.1.1-1
+monasca_log_api_tag: 8.0.1.1-1
+monasca_notification_tag: 8.0.1.1-1
+monasca_persister_tag: 8.0.1.1-2
+monasca_thresh_tag: 8.0.1.1-1
+neutron_tag: 8.0.1.1-1
+nova_tag: 8.0.1.1-1
+openvswitch_tag: 8.0.1.1-1
+placement_tag: 8.0.1.1-1
+rabbitmq_tag: 8.0.1.1-1
+# Use the pike release of Sahara, since our changes have not been ported to
+# later releases.
+sahara_tag: 5.0.3.3-1
+storm_tag: 8.0.1.1-1
+zookeeper_tag: 8.0.1.1-1

@@ -11,11 +11,11 @@
 #kolla_source_path:
 
 # URL of Kolla source code repository if type is 'source'.
-#kolla_source_url:
+kolla_source_url: https://github.com/stackhpc/kolla.git
 
 # Version (branch, tag, etc.) of Kolla source code repository if type is
-# 'source'.
-#kolla_source_version:
+# 'source'. Default is {{ openstack_branch }}.
+kolla_source_version: stackhpc/8.0.1.1
 
 # Path to virtualenv in which to install kolla.
 #kolla_venv:
@@ -33,14 +33,17 @@
 #kolla_ansible_source_path:
 
 # URL of Kolla Ansible source code repository if type is 'source'.
-#kolla_ansible_source_url:
+kolla_ansible_source_url: https://github.com/stackhpc/kolla-ansible.git
 
 # Version (branch, tag, etc.) of Kolla Ansible source code repository if type
-# is 'source'.
-#kolla_ansible_source_version:
+# is 'source'. Default is {{ openstack_branch }}.
+kolla_ansible_source_version: stackhpc/8.0.1.2
 
 # Path to virtualenv in which to install kolla-ansible.
 #kolla_ansible_venv:
+
+# Extra requirements to install inside the kolla-ansible virtualenv.
+#kolla_ansible_venv_extra_requirements:
 
 # Path to Kolla-ansible configuration directory.
 #kolla_config_path:
@@ -54,14 +57,14 @@
 # Kolla base container image distribution.
 #kolla_base_distro:
 
-# Kolla installation type: binary or source.
+# Kolla container image type: binary or source.
 #kolla_install_type:
 
 # URL of docker registry to use for Kolla images.
 #kolla_docker_registry:
 
 # Docker namespace to use for Kolla images.
-#kolla_docker_namespace:
+kolla_docker_namespace: stackhpc
 
 # Username to use to access a docker registry.
 #kolla_docker_registry_username:
@@ -70,7 +73,8 @@
 #kolla_docker_registry_password:
 
 # Kolla OpenStack release version. This should be a Docker image tag.
-#kolla_openstack_release:
+# Default is {{ openstack_release }}.
+kolla_openstack_release: 8.0.1.1-2
 
 # Dict mapping names of sources to their definitions for
 # kolla_install_type=source. See kolla.common.config for details.
@@ -88,58 +92,55 @@
 # Dict mapping Jinja2 block names in kolla's Docker images to their contents.
 #kolla_build_blocks:
 kolla_build_blocks:
-  fluentd_footer: |
-    # Install a custom fluentd output plugin that forwards logs to the monasca
-    # log API.
-    ADD https://github.com/stackhpc/fluentd-monasca/archive/master.tar.gz /fluentd-monasca.tar.gz
-    RUN mkdir /fluentd-monasca \
-        && cd /fluentd-monasca \
-        && tar -zxf /fluentd-monasca.tar.gz \
-        && rm /fluentd-monasca.tar.gz
-    RUN cd /fluentd-monasca/fluentd-monasca-master \
-        && gem build fluentd-monasca-output.gemspec \
-        && gem install fluentd-monasca-output-0.0.1.gem \
-        && fluent-gem install fluentd-monasca-output-0.0.1.gem \
-        && rm -rf /fluentd-monasca
   neutron_server_footer: |
-    # We need a patch neutron to force the provision network MTU to 1500.
-    RUN pip install -U --no-deps git+https://github.com/stackhpc/neutron.git@stackhpc/pike
     # There is no RDO RPM for this ML2 driver and Kolla's plugin mechanism only
     # supports source builds. Install a locally modified version with a fix for
     # Dell switches until it is released.
-    RUN pip install git+https://github.com/stackhpc/networking-generic-switch@stackhpc/pike
+    RUN pip install git+https://github.com/stackhpc/networking-generic-switch@stackhpc/1.3.1.1
+    # Install networking-mlnx for InfiniBand support.
+    RUN pip install git+https://opendev.org/openstack/networking-mlnx@14.0.1
   ironic_inspector_footer: |
     # Install our custom inspector plugins.
-    RUN pip install stackhpc-inspector-plugins
+    RUN pip install stackhpc-inspector-plugins==1.1.1
   magnum_api_footer: |
-    # The Swarm Fedora-atomic ironic driver is currently in development, so
-    # pull in a pike-based version of magnum with this change applied.
-    RUN pip install -U --no-deps git+https://github.com/stackhpc/magnum.git@stackhpc/pike
+    # This branch fixes k8s FailedNodeAllocatableEnforcement warning
+    RUN pip install -U --no-deps git+https://github.com/stackhpc/magnum@stackhpc/8.1.0.1
   magnum_conductor_footer: |
-    # The Swarm Fedora-atomic ironic driver is currently in development, so
-    # pull in an pike-based version of magnum with this change applied.
-    RUN pip install -U --no-deps git+https://github.com/stackhpc/magnum.git@stackhpc/pike
+    # This branch fixes k8s FailedNodeAllocatableEnforcement warning
+    RUN pip install -U --no-deps git+https://github.com/stackhpc/magnum@stackhpc/8.1.0.1
   sahara_api_footer: |
     # Bring in hack to the vanilla plugin
-    RUN pip install -U --no-deps git+https://github.com/stackhpc/sahara.git@stackhpc/pike
+    RUN pip install -U --no-deps git+https://github.com/stackhpc/sahara.git@stackhpc/7.0.2.1
   sahara_engine_footer: |
     # Bring in hack to the vanilla plugin
-    RUN pip install -U --no-deps git+https://github.com/stackhpc/sahara.git@stackhpc/pike
-  grafana_footer: |
-    # TODO: Re-enable the official plugin when #450868 is merged upstream. For now we will
-    # manually install it from git
-    # RUN grafana-cli plugins install monasca-datasource
-    RUN mkdir -p /var/lib/grafana/plugins/monasca-datasource \
-        && curl -Lo tmp.tgz https://github.com/stackhpc/monasca-grafana-datasource/tarball/log-query-api \
-        && tar zxvf tmp.tgz -C /var/lib/grafana/plugins/monasca-datasource --strip-components=1 \
-        && rm tmp.tgz
+    RUN pip install -U --no-deps git+https://github.com/stackhpc/sahara.git@stackhpc/7.0.2.1
+  monasca_api_footer: |
+    # NOTE(brtknr): Support time range in dimension queries (stein backport):
+    # https://review.opendev.org/#/c/670318/
+    # Support database per tenant (stein backport)
+    # https://review.opendev.org/#/c/674478/
+    RUN pip install -U --no-deps git+https://github.com/stackhpc/monasca-api.git@stackhpc/3.0.0.3
+  monasca_persister_footer: |
+    # NOTE(brtknr): Implement separate db per tenancy (stein backport):
+    # https://review.opendev.org/#/c/674484/
+    RUN pip install -U --no-deps git+https://github.com/stackhpc/monasca-persister.git@stackhpc/1.14.0.2
+  monasca_grafana_footer: |
     # Install plugin for Gantt charts
     RUN grafana-cli plugins install natel-discrete-panel
-  kafka_version: |
-    # This is the most recent version of Kafka that Monasca currently supports
-    ENV kafka_url=https://archive.apache.org/dist/kafka/0.9.0.1/kafka_2.11-0.9.0.1.tgz
-    ENV kafka_pkg_sha512sum=818a821877436bbb9698a32afeb299bc569985a6b712179a9882bf1a10edfdb4992519ba39c1d7499144650b30781fc943a4d5d15b8d5916a4c1a5e542d9b956
-
+    RUN grafana-cli plugins install vonage-status-panel
+    # NOTE(brtknr): Support time range in dimension queries (stein backport):
+    # https://review.opendev.org/#/c/670316/
+    RUN grafana-cli plugins remove monasca-datasource \
+        && curl -sSL -o /tmp/monasca-grafana-datasource.tgz https://github.com/stackhpc/monasca-grafana-datasource/archive/stackhpc/1.3.0.tar.gz \
+        && mkdir -p /var/lib/grafana/plugins/monasca-datasource \
+        && tar --strip 1 -xvf /tmp/monasca-grafana-datasource.tgz -C /var/lib/grafana/plugins/monasca-datasource \
+        && rm -f /tmp/monasca-grafana-datasource.tgz
+  monasca_notification_footer: |
+    # Bring in Slack template patch and fixes for notification plugins
+    # TODO(dszumski): When the following are merged, we can create a new
+    # release, bump the release version in Kolla and remove this footer.
+    # https://review.opendev.org/#/c/519630/
+    RUN pip install -U --no-deps git+https://github.com/stackhpc/monasca-notification@stackhpc/1.17.0.1
 
 # Dict mapping image customization variable names to their values.
 # Each variable takes the form:
@@ -149,9 +150,27 @@ kolla_build_blocks:
 # remove. The value should be a list.
 #kolla_build_customizations:
 kolla_build_customizations:
-   # Use our own repo server to install the monasca-grafana fork
-   base_yum_repo_files_remove:
-     - 'grafana.repo'
+  # Required for Keystone federation via EGI Check-in, and any other IdPs
+  # that support the OpenID Connect protocol
+  keystone_base_packages_append:
+    - 'mod_auth_openidc'
+  influxdb_packages_override:
+    - 'influxdb-1.7.6'
+  ironic_inspector_packages_append:
+    # Allow custom packages to be installed via pip.
+    - 'python-pip'
+  magnum_base_packages_append:
+    # Allow custom packages to be installed via pip.
+    - 'python-pip'
+  nova_compute_ironic_packages_append:
+    # Allow custom packages to be installed via pip.
+    - 'python-pip'
+  neutron_server_packages_append:
+    # Allow custom packages to be installed via pip.
+    - 'python-pip'
+  sahara_base_packages_append:
+    # Allow custom packages to be installed via pip.
+    - 'python-pip'
 
 ###############################################################################
 # Kolla-ansible inventory configuration.
@@ -166,6 +185,7 @@ kolla_build_customizations:
 # Custom overcloud inventory containing a mapping from components to top level
 # groups.
 #kolla_overcloud_inventory_custom_components:
+kolla_overcloud_inventory_custom_components: "{{ lookup('template', kayobe_config_path ~ '/kolla/inventory/overcloud-components.j2') }}"
 
 # Custom overcloud inventory containing a mapping from services to components.
 #kolla_overcloud_inventory_custom_services:
@@ -201,6 +221,10 @@ kolla_overcloud_inventory_top_level_group_map:
 ###############################################################################
 # Kolla-ansible configuration.
 
+# Virtualenv directory where Kolla-ansible's ansible modules will execute
+# remotely on the target nodes. If None, no virtualenv will be used.
+#kolla_ansible_target_venv:
+
 # Whether TLS is enabled for the external API endpoints.
 #kolla_enable_tls_external:
 
@@ -210,70 +234,99 @@ kolla_overcloud_inventory_top_level_group_map:
 # Whether debug logging is enabled.
 #kolla_openstack_logging_debug:
 
+# Upper constraints file for installation of Kolla.
+#kolla_upper_constraints_file:
+
+# User account to use for Kolla SSH access.
+#kolla_ansible_user:
+
+# Primary group of Kolla SSH user.
+#kolla_ansible_group:
+
+# Whether to use privilege escalation for all operations performed via Kolla
+# Ansible.
+#kolla_ansible_become:
+
 ###############################################################################
 # Kolla feature flag configuration.
 
 #kolla_enable_aodh:
 #kolla_enable_barbican:
 kolla_enable_barbican: True
+#kolla_enable_blazar:
 #kolla_enable_cadf_notifications:
 #kolla_enable_ceilometer:
 #kolla_enable_central_logging:
 #kolla_enable_ceph:
+#kolla_enable_ceph_mds:
+#kolla_enable_ceph_nfs:
 #kolla_enable_ceph_rgw:
+# The chrony container is disabled by default because we enable an NTP daemon
+# on the host. Setting this to true will disable NTP on the host.
+#kolla_enable_chrony:
 #kolla_enable_cinder:
 #kolla_enable_cinder_backend_hnas_iscsi:
 #kolla_enable_cinder_backend_hnas_nfs:
 #kolla_enable_cinder_backend_iscsi:
 #kolla_enable_cinder_backend_lvm:
 #kolla_enable_cinder_backend_nfs:
+#kolla_enable_cinder_backend_zfssa_iscsi:
 #kolla_enable_cloudkitty:
 #kolla_enable_congress:
 #kolla_enable_designate:
 #kolla_enable_elasticsearch:
-kolla_enable_elasticsearch: True
 #kolla_enable_etcd:
+#kolla_enable_fluentd:
 #kolla_enable_freezer:
 #kolla_enable_gnocchi:
 #kolla_enable_grafana:
-kolla_enable_grafana: True
 #kolla_enable_haproxy:
 #kolla_enable_heat:
 #kolla_enable_horizon:
 #kolla_enable_influxdb:
-kolla_enable_influxdb: True
 #kolla_enable_ironic:
+kolla_enable_ironic_ipxe: True
+#kolla_enable_ironic_ipxe:
+#kolla_enable_ironic_pxe_uefi:
 #kolla_enable_iscsid:
 #kolla_enable_kafka:
-kolla_enable_kafka: True
 #kolla_enable_karbor:
+#kolla_enable_keystone:
 #kolla_enable_kibana:
-kolla_enable_kibana: True
 #kolla_enable_kuryr:
 #kolla_enable_magnum:
 kolla_enable_magnum: True
-#kolla_enable_manila:
+kolla_enable_manila: true
+kolla_enable_manila_backend_cephfs_native: true
 #kolla_enable_manila_backend_generic:
 #kolla_enable_manila_backend_hnas:
+#kolla_enable_manila_backend_cephfs_native:
+#kolla_enable_manila_backend_cephfs_nfs:
 #kolla_enable_mistral:
 #kolla_enable_monasca:
 kolla_enable_monasca: True
 #kolla_enable_mongodb:
 #kolla_enable_multipathd:
 #kolla_enable_murano:
-kolla_enable_murano: True
-#kolla_enable_neutron_vpnaas:
+kolla_enable_murano: false
+#kolla_enable_neutron_agent_ha:
+#kolla_enable_neutron_bgp_dragent:
 #kolla_enable_neutron_dvr:
 #kolla_enable_neutron_fwaas:
 #kolla_enable_neutron_lbaas:
-#kolla_enable_neutron_qos:
-#kolla_enable_neutron_agent_ha:
-#kolla_enable_neutron_bgp_dragent:
+kolla_enable_neutron_lbaas: true
 #kolla_enable_neutron_provider_networks:
+#kolla_enable_neutron_qos:
+#kolla_enable_neutron_segments:
+#kolla_enable_neutron_sriov:
+#kolla_enable_neutron_vpnaas:
 #kolla_enable_nova_serialconsole_proxy:
+kolla_enable_nova_serialconsole_proxy: true
 #kolla_enable_octavia:
 #kolla_enable_osprofiler:
 #kolla_enable_panko:
+#kolla_enable_prometheus:
+#kolla_enable_qdrouterd:
 #kolla_enable_rally:
 #kolla_enable_sahara:
 kolla_enable_sahara: True
@@ -281,11 +334,13 @@ kolla_enable_sahara: True
 #kolla_enable_senlin:
 #kolla_enable_skydive:
 #kolla_enable_solum:
+#kolla_enable_storm:
 #kolla_enable_swift:
 #kolla_enable_tacker:
 #kolla_enable_telegraf:
 #kolla_enable_tempest:
 #kolla_enable_trove:
+#kolla_enable_vitrage:
 #kolla_enable_vmtp:
 #kolla_enable_watcher:
 #kolla_enable_zookeeper:
@@ -301,6 +356,21 @@ kolla_enable_sahara: True
 # Dictionary containing custom passwords to add or override in the Kolla
 # passwords file.
 #kolla_ansible_custom_passwords:
+
+###############################################################################
+# TLS certificate bundle management
+
+# Optionally copy a TLS certificate bundle into place.
+#
+# When enabled, this will copy the contents of kolla_tls_cert into place for
+# use by HAproxy.
+#
+# Note that this should be formatted as a literal style block scalar.
+#kolla_tls_cert:
+
+# Path to a CA certificate file to use for the OS_CACERT environment variable in
+# openrc files when TLS is enabled, instead of Kolla-Ansible's default.
+#kolla_external_fqdn_cacert:
 
 ###############################################################################
 # Dummy variable to allow Ansible to accept this file.

@@ -2,8 +2,7 @@
 ###############################################################################
 # Docker configuration.
 
-# Name of the docker storage driver. Supported values include 'devicemapper'
-# and 'overlay'.
+# Name of the docker storage driver. Default is 'devicemapper'.
 #docker_storage_driver:
 
 # Name of the docker storage LVM volume group.
@@ -27,6 +26,9 @@
 
 # CA of docker registry
 #docker_registry_ca:
+
+# Enable live-restore on docker daemon
+#docker_daemon_live_restore:
 
 ###############################################################################
 # Dummy variable to allow Ansible to accept this file.
