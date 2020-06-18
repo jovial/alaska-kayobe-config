@@ -76,7 +76,7 @@ pipeline {
                     steps {
                         sh 'cp -R secrets/. /secrets'
                         sh '/bin/entrypoint.sh echo READY'
-                        sh "${params.COMMAND}"
+                        sh "${WORKSPACE}/jenkins/helloworld.sh"
                     }
                 }
             }
