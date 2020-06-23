@@ -13,6 +13,7 @@ node {
     docker_registry = getRequiredConfigOption('docker_registry', String)
     kayobe_ssh_creds = getRequiredConfigOption("kayobe_ssh_creds", String)
     kayobe_vault_password = getRequiredConfigOption("kayobe_vault_password", String)
+    test = getRequiredConfigOption("test", String)
 }
 
 pipeline {
