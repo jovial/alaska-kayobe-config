@@ -7,9 +7,9 @@ def checkConfigOption(String option, Class<?> type) {
     }
 }
 
-checkConfigOption("docker_registry", String)
-checkConfigOption("kayobe_ssh_creds", String)
-checkConfigOption("kayobe_vault_password", String)
+// checkConfigOption("docker_registry", String)
+// checkConfigOption("kayobe_ssh_creds", String)
+// checkConfigOption("kayobe_vault_password", String)
 
 node {
     config = readYaml file: 'jenkins/config.yml'
