@@ -7,6 +7,14 @@ def checkConfigOption(String option, Class<?> type) {
     }
 }
 
+checkConfigOption("docker_registry", String)
+checkConfigOption("kayobe_ssh_creds", String)
+checkConfigOption("kayobe_vault_password", String)
+
+node {
+    config = readYaml file: 'jenkins/config.yml'
+}
+
 pipeline {
     options { disableConcurrentBuilds() }
     agent { label 'docker' }
@@ -21,19 +29,13 @@ pipeline {
     stages {
         // Do parameter validation in a stage so that the git checkout of the pipeline still works.
         // This is necessary to update the build parameters.
-        stage('Validate parameters') {
+        stage('Validate') {
             steps {
                 script {
                     if (!params.COMMAND){
                         // Fail early
                         error("You must set the COMMAND parameter")
                     }
-                }
-                script {
-                    def config = readYaml file: 'jenkins/config.yml'
-                    checkConfigOption("docker_registry", String)
-                    checkConfigOption("kayobe_ssh_creds", String)
-                    checkConfigOption("kayobe_vault_password", String)
                 }
             }
 
