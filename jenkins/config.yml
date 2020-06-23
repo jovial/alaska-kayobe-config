@@ -1,0 +1,12 @@
+---
+# Kayobe SSH Key
+kayobe_ssh_creds: kayobe-ssh-private-key
+
+# Kayobe Ansible Vault Password
+kayobe_vault_password: kayobe-vault-password
+
+# Docker Registry to push images to
+docker_registry: http://localhost:5000
+
+# Kayobe SSH Config file
+# kayobe_ssh_config:

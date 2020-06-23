@@ -1,15 +1,26 @@
+def config = readYaml file: 'jenkins/config.yml'
+
+def checkConfigOption(String option, Class<?> type) {
+    if (!config.containsKey(option)) {
+        error("${option} is a a required configuration option")
+    }
+    if (!type.isInstance(config[option])) {
+        error("The configuration option, ${option}, should be of type: ${type}")
+    }
+}
+
+checkConfigOption("docker_registry", String)
+checkConfigOption("kayobe_ssh_creds", String)
+checkConfigOption("kayobe_vault_password", String)
+
 pipeline {
     options { disableConcurrentBuilds() }
     agent { label 'docker' }
     parameters {
-        credentials credentialType: 'com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey', defaultValue: 'kayobe-ssh-private-key', description: 'Kayobe SSH Key', name: 'KAYOBE_SSH_CREDS', required: true
-        credentials credentialType: 'org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl', defaultValue: 'kayobe-vault-password', description: 'Kayobe Ansible Vault Password', name: 'KAYOBE_VAULT_PASSWORD', required: true
-        string defaultValue: 'http://localhost:5000/', description: 'Docker Registry to push images to', name: 'DOCKER_REGISTRY', trim: true
         string description: 'Command to run in docker container', name: 'COMMAND', trim: false
-        credentials credentialType: 'org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl', description: 'Kayobe SSH Config file', name: 'KAYOBE_SSH_CONFIG', required: false
     }
     environment {
-        REGISTRY = "${params.DOCKER_REGISTRY}"
+        REGISTRY = "${config.docker_registry}"
         KAYOBE_IMAGE = "kayobe-config:${env.GIT_COMMIT}"
     }
 
@@ -41,8 +52,8 @@ pipeline {
             stages {
                 stage('Prepare Secrets') {
                     environment {
-                        KAYOBE_VAULT_PASSWORD = credentials("${params.KAYOBE_VAULT_PASSWORD}")
-                        KAYOBE_SSH_CREDS_FILE = credentials("${params.KAYOBE_SSH_CREDS}")
+                        KAYOBE_VAULT_PASSWORD = credentials("${config.kayobe_vault_password}")
+                        KAYOBE_SSH_CREDS_FILE = credentials("${config.kayobe_ssh_creds}")
                     }
                     steps {
                         sh 'mkdir -p secrets/.ssh'
@@ -53,10 +64,10 @@ pipeline {
                 }
                 stage('Optionally prepare SSH Config') {
                     when {
-                        expression { params.KAYOBE_SSH_CONFIG != null && params.KAYOBE_SSH_CONFIG != '' }
+                        expression { config.kayobe_ssh_config != null && config.kayobe_ssh_config != '' }
                     }
                     environment {
-                        KAYOBE_SSH_CONFIG_FILE = credentials("${params.KAYOBE_SSH_CONFIG}")
+                        KAYOBE_SSH_CONFIG_FILE = credentials("${config.kayobe_ssh_config}")
                     }
                     steps {
                         sh "cp $KAYOBE_SSH_CONFIG_FILE secrets/.ssh/config"
@@ -71,7 +82,7 @@ pipeline {
                         }
                     }
                     environment {
-                        KAYOBE_VAULT_PASSWORD = credentials("${params.KAYOBE_VAULT_PASSWORD}")
+                        KAYOBE_VAULT_PASSWORD = credentials("${config.kayobe_vault_password}")
                     }
                     steps {
                         sh 'cp -R secrets/. /secrets'
