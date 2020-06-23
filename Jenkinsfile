@@ -1,18 +1,18 @@
-def checkConfigOption(String option, Class<?> type) {
+def getRequiredConfigOption(String option, Class<?> type) {
     if (!config.containsKey(option)) {
         error("${option} is a a required configuration option")
     }
     if (!type.isInstance(config[option])) {
         error("The configuration option, ${option}, should be of type: ${type}")
     }
+    return config[option]
 }
-
-// checkConfigOption("docker_registry", String)
-// checkConfigOption("kayobe_ssh_creds", String)
-// checkConfigOption("kayobe_vault_password", String)
 
 node {
     config = readYaml file: 'jenkins/config.yml'
+    docker_registry = getRequiredConfigOption('docker_registry', String)
+    kayobe_ssh_creds = getRequiredConfigOption("kayobe_ssh_creds", String)
+    kayobe_vault_password = getRequiredConfigOption("kayobe_vault_password", String)
 }
 
 pipeline {
@@ -22,7 +22,7 @@ pipeline {
         string description: 'Command to run in docker container', name: 'COMMAND', trim: false
     }
     environment {
-        REGISTRY = "${config.docker_registry}"
+        REGISTRY = "${docker_registry}"
         KAYOBE_IMAGE = "kayobe-config:${env.GIT_COMMIT}"
     }
 
@@ -55,8 +55,8 @@ pipeline {
             stages {
                 stage('Prepare Secrets') {
                     environment {
-                        KAYOBE_VAULT_PASSWORD = credentials("${config.kayobe_vault_password}")
-                        KAYOBE_SSH_CREDS_FILE = credentials("${config.kayobe_ssh_creds}")
+                        KAYOBE_VAULT_PASSWORD = credentials("${kayobe_vault_password}")
+                        KAYOBE_SSH_CREDS_FILE = credentials("${kayobe_ssh_creds}")
                     }
                     steps {
                         sh 'mkdir -p secrets/.ssh'
@@ -85,7 +85,7 @@ pipeline {
                         }
                     }
                     environment {
-                        KAYOBE_VAULT_PASSWORD = credentials("${config.kayobe_vault_password}")
+                        KAYOBE_VAULT_PASSWORD = credentials("${kayobe_vault_password}")
                     }
                     steps {
                         sh 'cp -R secrets/. /secrets'
