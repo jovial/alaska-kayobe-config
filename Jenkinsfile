@@ -1,5 +1,3 @@
-def config = readYaml file: 'jenkins/config.yml'
-
 def checkConfigOption(String option, Class<?> type) {
     if (!config.containsKey(option)) {
         error("${option} is a a required configuration option")
@@ -8,10 +6,6 @@ def checkConfigOption(String option, Class<?> type) {
         error("The configuration option, ${option}, should be of type: ${type}")
     }
 }
-
-checkConfigOption("docker_registry", String)
-checkConfigOption("kayobe_ssh_creds", String)
-checkConfigOption("kayobe_vault_password", String)
 
 pipeline {
     options { disableConcurrentBuilds() }
@@ -35,7 +29,14 @@ pipeline {
                         error("You must set the COMMAND parameter")
                     }
                 }
+                script {
+                    def config = readYaml file: 'jenkins/config.yml'
+                    checkConfigOption("docker_registry", String)
+                    checkConfigOption("kayobe_ssh_creds", String)
+                    checkConfigOption("kayobe_vault_password", String)
+                }
             }
+
         }
         stage('Build and Push') {
             steps {
